@@ -160,13 +160,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const highScoreEl = document.getElementById("high-score");
     const finalScoreEl = document.getElementById("final-score");
     const newHighScoreBanner = document.getElementById("new-high-score-banner");
+    const growthTimerEl = document.getElementById("growth-timer");
     
-    const wallWrapCheckbox = document.getElementById("wall-wrap");
-    const wrapStatusText = document.getElementById("wrap-status");
     const difficultyGroup = document.getElementById("difficulty-group");
     
-    const ghostToggleCheckbox = document.getElementById("ghost-toggle");
-    const ghostStatusText = document.getElementById("ghost-status");
     const gameOverTitle = document.getElementById("game-over-title");
     const gameOverReason = document.getElementById("game-over-reason");
     
@@ -192,7 +189,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // State Variables
     let currentDifficulty = "medium";
-    let wrapWalls = false;
+    const wrapWalls = false; // Walls are always deadly
+    const ghostActive = true; // Ghost is always active
     let gameState = "START"; // START, PLAYING, PAUSED, GAMEOVER
     
     let snake = [];
@@ -204,9 +202,11 @@ document.addEventListener("DOMContentLoaded", () => {
     
     let food = { x: 0, y: 0 };
     let goldFood = null; // { x: 0, y: 0, timer: 0, maxTimer: 5000 }
-    
-    let ghostActive = true;
     let ghost = { x: 2, y: 2, dx: 0, dy: 1, moveCounter: 0 };
+    
+    let growthQueue = 0;
+    let timeSinceLastGrowth = 0;
+    let lastFrameTime = 0;
     
     let score = 0;
     let highScore = parseInt(localStorage.getItem("neon-snake-high-score")) || 0;
@@ -229,15 +229,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    wallWrapCheckbox.addEventListener("change", (e) => {
-        wrapWalls = e.target.checked;
-        wrapStatusText.textContent = wrapWalls ? "穿牆開啟 (無限)" : "穿牆關閉 (阻擋)";
-    });
-
-    ghostToggleCheckbox.addEventListener("change", (e) => {
-        ghostActive = e.target.checked;
-        ghostStatusText.textContent = ghostActive ? "鬼魂開啟 (危險)" : "鬼魂關閉 (安全)";
-    });
 
     startBtn.addEventListener("click", () => {
         audio.init();
@@ -311,6 +302,10 @@ document.addEventListener("DOMContentLoaded", () => {
         rainbowTimer = 0;
         
         ghost = { x: 2, y: 2, dx: 0, dy: 1, moveCounter: 0 };
+        growthQueue = 0;
+        timeSinceLastGrowth = 0;
+        lastFrameTime = performance.now();
+        growthTimerEl.textContent = "5.0s";
 
         spawnFood();
 
@@ -330,11 +325,33 @@ document.addEventListener("DOMContentLoaded", () => {
         renderFrame();
 
         if (gameState === "PLAYING") {
+            const frameTimeDiff = timestamp - lastFrameTime;
+            lastFrameTime = timestamp;
+
+            // Update passive tail growth timer (grows 1 segment every 5 seconds)
+            timeSinceLastGrowth += frameTimeDiff;
+            if (timeSinceLastGrowth >= 5000) {
+                timeSinceLastGrowth = 0;
+                growthQueue += 1;
+                audio.playEat(); // subtle chime
+                if (snake.length > 0) {
+                    const tail = snake[snake.length - 1];
+                    createExplosion(
+                        tail.x * GRID_SIZE + GRID_SIZE / 2,
+                        tail.y * GRID_SIZE + GRID_SIZE / 2,
+                        "#ff007f",
+                        8
+                    );
+                }
+            }
+            
+            // Update UI timer text
+            const secondsLeft = Math.max(0, (5000 - timeSinceLastGrowth) / 1000).toFixed(1);
+            growthTimerEl.textContent = `${secondsLeft}s`;
+
             const timeDiff = timestamp - lastTickTime;
-            // Get speed duration based on current difficulty
             let tickDelay = DIFFICULTIES[currentDifficulty];
             
-            // Speed up slightly when in rainbow/overload mode
             if (rainbowMode) {
                 tickDelay = Math.floor(tickDelay * 0.85);
             }
@@ -343,6 +360,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 tick();
                 lastTickTime = timestamp;
             }
+        } else {
+            lastFrameTime = timestamp; // Keep it updated when paused
         }
 
         animationFrameId = requestAnimationFrame(gameLoop);
@@ -357,23 +376,16 @@ document.addEventListener("DOMContentLoaded", () => {
         // Calculate new head position
         const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-        // Handle wall collisions / wraps
-        if (wrapWalls) {
-            if (head.x >= COLS) head.x = 0;
-            if (head.x < 0) head.x = COLS - 1;
-            if (head.y >= ROWS) head.y = 0;
-            if (head.y < 0) head.y = ROWS - 1;
-        } else {
-            if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
-                endGame();
-                return;
-            }
+        // Handle wall collisions (always deadly)
+        if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
+            endGame("wall");
+            return;
         }
 
         // Check self-collision
         for (let i = 0; i < snake.length; i++) {
             if (snake[i].x === head.x && snake[i].y === head.y) {
-                endGame();
+                endGame("self");
                 return;
             }
         }
@@ -386,22 +398,29 @@ document.addEventListener("DOMContentLoaded", () => {
                 moveGhost();
             }
             
-            // Check collision with head
+            // Check collision with head -> Touching the ghost makes the tail grow!
             if (head.x === ghost.x && head.y === ghost.y) {
-                endGame("ghost");
-                return;
-            }
-            
-            // Check collision with body
-            const bodyCollision = snake.some(segment => segment.x === ghost.x && segment.y === ghost.y);
-            if (bodyCollision) {
-                endGame("ghost");
-                return;
+                growthQueue += 3; // grow tail by 3 segments
+                score += 20; // bonus score
+                currentScoreEl.textContent = formatScore(score);
+                
+                // Explode purple sparks
+                createExplosion(
+                    ghost.x * GRID_SIZE + GRID_SIZE / 2,
+                    ghost.y * GRID_SIZE + GRID_SIZE / 2,
+                    "#9d4edd",
+                    25
+                );
+                
+                audio.playGoldEat();
+                respawnGhost(); // move ghost to safe location
             }
         }
 
         // Add new head segment
         snake.unshift(head);
+
+        let grew = false;
 
         // Check eating regular food
         if (head.x === food.x && head.y === food.y) {
@@ -417,8 +436,8 @@ document.addEventListener("DOMContentLoaded", () => {
             
             audio.playEat();
             spawnFood();
+            grew = true;
             
-            // Randomly trigger gold food spawning (15% chance, if no gold food active)
             if (!goldFood && Math.random() < 0.15) {
                 spawnGoldFood();
             }
@@ -428,7 +447,6 @@ document.addEventListener("DOMContentLoaded", () => {
             score += 30;
             currentScoreEl.textContent = formatScore(score);
             
-            // Trigger Rainbow speed mode
             rainbowMode = true;
             rainbowTimer = 40; // ticks remaining of boost
             
@@ -441,17 +459,31 @@ document.addEventListener("DOMContentLoaded", () => {
             
             audio.playGoldEat();
             goldFood = null;
+            grew = true;
         } 
-        else {
-            // Remove tail segment if food wasn't eaten
-            snake.pop();
+        
+        // Handle tail growing or normal movement popping
+        if (!grew) {
+            if (growthQueue > 0) {
+                growthQueue--;
+                if (snake.length > 0) {
+                    const tail = snake[snake.length - 1];
+                    createExplosion(
+                        tail.x * GRID_SIZE + GRID_SIZE / 2,
+                        tail.y * GRID_SIZE + GRID_SIZE / 2,
+                        "rgba(255, 0, 127, 0.4)",
+                        4
+                    );
+                }
+            } else {
+                snake.pop();
+            }
         }
 
         // Handle Gold Food timer ticking
         if (goldFood) {
             goldFood.timer -= DIFFICULTIES[currentDifficulty];
             if (goldFood.timer <= 0) {
-                // Decay burst effect on expire
                 createExplosion(
                     goldFood.x * GRID_SIZE + GRID_SIZE / 2,
                     goldFood.y * GRID_SIZE + GRID_SIZE / 2,
@@ -588,9 +620,13 @@ document.addEventListener("DOMContentLoaded", () => {
         finalScoreEl.textContent = score;
         gameOverScreen.classList.add("active");
         
-        if (reason === "ghost") {
-            gameOverTitle.textContent = "SYSTEM INFECTED";
-            gameOverReason.textContent = "ELIMINATED BY GHOST";
+        if (reason === "wall") {
+            gameOverTitle.textContent = "WALL COLLISION";
+            gameOverReason.textContent = "CRASHED INTO BORDER";
+            gameOverReason.classList.remove("hidden");
+        } else if (reason === "self") {
+            gameOverTitle.textContent = "DEATH LOOP";
+            gameOverReason.textContent = "COLLIDED WITH YOUR TAIL";
             gameOverReason.classList.remove("hidden");
         } else {
             gameOverTitle.textContent = "MISSION FAILED";
@@ -975,5 +1011,32 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.fill();
         
         ctx.restore();
+    }
+
+    // Respawn Ghost at a safe distance from snake head
+    function respawnGhost() {
+        let spawned = false;
+        let attempts = 0;
+        const head = snake[0];
+        while (!spawned && attempts < 100) {
+            attempts++;
+            const rx = Math.floor(Math.random() * COLS);
+            const ry = Math.floor(Math.random() * ROWS);
+            
+            // Manhattan distance must be > 8, and not overlap with snake segments or food
+            const dist = Math.abs(rx - head.x) + Math.abs(ry - head.y);
+            const collision = snake.some(segment => segment.x === rx && segment.y === ry) ||
+                              (food.x === rx && food.y === ry) ||
+                              (goldFood && goldFood.x === rx && goldFood.y === ry);
+            
+            if (dist > 8 && !collision) {
+                ghost.x = rx;
+                ghost.y = ry;
+                ghost.dx = 0;
+                ghost.dy = 1;
+                ghost.moveCounter = 0;
+                spawned = true;
+            }
+        }
     }
 });

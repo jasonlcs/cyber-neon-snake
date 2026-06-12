@@ -23,6 +23,10 @@
                     <span class="card-label">SCORE</span>
                     <span id="current-score" class="card-value">000</span>
                 </div>
+                <div class="score-card" style="border-color: rgba(255, 0, 127, 0.35); min-width: 110px;">
+                    <span class="card-label">AUTO-GROWTH</span>
+                    <span id="growth-timer" class="card-value" style="color: var(--neon-pink); text-shadow: var(--glow-pink);">5.0s</span>
+                </div>
                 <div class="score-card highlight">
                     <span class="card-label">HIGH SCORE</span>
                     <span id="high-score" class="card-value">000</span>
@@ -50,24 +54,6 @@
                                     <button class="btn-select active" data-value="medium">MEDIUM</button>
                                     <button class="btn-select" data-value="hard">HARD</button>
                                 </div>
-                            </div>
-                            
-                            <div class="setting-group">
-                                <label for="wall-collision">穿牆模式 (WALLS)</label>
-                                <label class="switch">
-                                    <input type="checkbox" id="wall-wrap">
-                                    <span class="slider"></span>
-                                </label>
-                                <span class="switch-label" id="wrap-status">穿牆關閉 (阻擋)</span>
-                            </div>
-                            
-                            <div class="setting-group">
-                                <label for="ghost-threat">鬼魂威脅 (GHOST)</label>
-                                <label class="switch">
-                                    <input type="checkbox" id="ghost-toggle" checked>
-                                    <span class="slider"></span>
-                                </label>
-                                <span class="switch-label" id="ghost-status">鬼魂開啟 (危險)</span>
                             </div>
                         </div>
 
@@ -149,7 +135,7 @@
                     </div>
                     <div class="legend-item">
                         <span class="dot neon-purple blink-fast"></span>
-                        <span>幽靈鬼魂 (碰觸即死)</span>
+                        <span>幽靈鬼魂 (觸碰尾巴增長)</span>
                     </div>
                 </div>
             </div>
