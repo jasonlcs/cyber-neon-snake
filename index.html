@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Neon Snake - 霓虹科幻貪吃蛇</title>
+    <!-- Google Fonts for Orbitron and Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Header: Score Board -->
+        <header class="game-header">
+            <div class="brand">
+                <span class="neon-title">NEON</span>
+                <span class="white-title">SNAKE</span>
+            </div>
+            <div class="scoreboard">
+                <div class="score-card">
+                    <span class="card-label">SCORE</span>
+                    <span id="current-score" class="card-value">000</span>
+                </div>
+                <div class="score-card highlight">
+                    <span class="card-label">HIGH SCORE</span>
+                    <span id="high-score" class="card-value">000</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Game Panel -->
+        <main class="game-area">
+            <!-- Canvas container for layers -->
+            <div class="canvas-wrapper">
+                <canvas id="game-canvas" width="600" height="600"></canvas>
+                
+                <!-- Start Screen Overlay -->
+                <div id="start-screen" class="overlay active">
+                    <div class="overlay-content">
+                        <h1 class="logo-text">NEON SNAKE</h1>
+                        <p class="tagline">A Premium Cyberpunk Arcade Experience</p>
+                        
+                        <div class="settings-panel">
+                            <div class="setting-group">
+                                <label for="difficulty">難易度 (SPEED)</label>
+                                <div class="btn-group" id="difficulty-group">
+                                    <button class="btn-select" data-value="easy">EASY</button>
+                                    <button class="btn-select active" data-value="medium">MEDIUM</button>
+                                    <button class="btn-select" data-value="hard">HARD</button>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <label for="wall-collision">穿牆模式 (WALLS)</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="wall-wrap">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="wrap-status">穿牆關閉 (阻擋)</span>
+                            </div>
+                        </div>
+
+                        <button id="start-btn" class="btn btn-primary">START MISSION</button>
+                    </div>
+                </div>
+
+                <!-- Pause Screen Overlay -->
+                <div id="pause-screen" class="overlay">
+                    <div class="overlay-content">
+                        <h2 class="neon-text-blue">MISSION PAUSED</h2>
+                        <p class="blink">PRESS SPACE TO RESUME</p>
+                        <button id="resume-btn" class="btn btn-secondary">RESUME</button>
+                    </div>
+                </div>
+
+                <!-- Game Over Screen Overlay -->
+                <div id="game-over-screen" class="overlay">
+                    <div class="overlay-content">
+                        <h2 class="neon-text-red">MISSION FAILED</h2>
+                        <p class="final-score-text">FINAL SCORE: <span id="final-score">0</span></p>
+                        <div id="new-high-score-banner" class="hidden">
+                            <span class="rainbow-text">NEW HIGH SCORE!</span>
+                        </div>
+                        <button id="restart-btn" class="btn btn-primary">TRY AGAIN</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side panel for Info & Controls on desktop, will adapt to responsive -->
+            <div class="side-panel">
+                <div class="panel-section">
+                    <h3>CONTROLS</h3>
+                    <div class="control-hints">
+                        <div class="control-row">
+                            <span class="key-cap">W</span>
+                            <span class="key-cap">A</span>
+                            <span class="key-cap">S</span>
+                            <span class="key-cap">D</span>
+                            <span class="control-desc">/ 方向鍵移動</span>
+                        </div>
+                        <div class="control-row">
+                            <span class="key-cap wide">SPACE</span>
+                            <span class="control-desc">暫停 / 啟動</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Virtual Controls -->
+                <div class="mobile-controls">
+                    <button class="d-pad-btn up" id="ctrl-up">
+                        <svg viewBox="0 0 24 24"><path d="M12 8l-6 6h12z" fill="currentColor"/></svg>
+                    </button>
+                    <div class="d-pad-row">
+                        <button class="d-pad-btn left" id="ctrl-left">
+                            <svg viewBox="0 0 24 24"><path d="M8 12l6-6v12z" fill="currentColor"/></svg>
+                        </button>
+                        <div class="d-pad-center"></div>
+                        <button class="d-pad-btn right" id="ctrl-right">
+                            <svg viewBox="0 0 24 24"><path d="M16 12l-6 6V6z" fill="currentColor"/></svg>
+                        </button>
+                    </div>
+                    <button class="d-pad-btn down" id="ctrl-down">
+                        <svg viewBox="0 0 24 24"><path d="M12 16l6-6H6z" fill="currentColor"/></svg>
+                    </button>
+                </div>
+
+                <!-- Game stats/legend -->
+                <div class="panel-section legend">
+                    <h3>ITEMS</h3>
+                    <div class="legend-item">
+                        <span class="dot neon-cyan"></span>
+                        <span>標準能量晶體 (+10分)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="dot neon-yellow blink-fast"></span>
+                        <span>黃金超載晶體 (+30分 +加速)</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="game-footer">
+            <p>&copy; 2026 Retro Neon Snake. Created with HTML5 & Canvas.</p>
+        </footer>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
