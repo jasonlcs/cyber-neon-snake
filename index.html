@@ -60,6 +60,15 @@
                                 </label>
                                 <span class="switch-label" id="wrap-status">穿牆關閉 (阻擋)</span>
                             </div>
+                            
+                            <div class="setting-group">
+                                <label for="ghost-threat">鬼魂威脅 (GHOST)</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="ghost-toggle" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="ghost-status">鬼魂開啟 (危險)</span>
+                            </div>
                         </div>
 
                         <button id="start-btn" class="btn btn-primary">START MISSION</button>
@@ -78,8 +87,9 @@
                 <!-- Game Over Screen Overlay -->
                 <div id="game-over-screen" class="overlay">
                     <div class="overlay-content">
-                        <h2 class="neon-text-red">MISSION FAILED</h2>
+                        <h2 class="neon-text-red" id="game-over-title">MISSION FAILED</h2>
                         <p class="final-score-text">FINAL SCORE: <span id="final-score">0</span></p>
+                        <p id="game-over-reason" class="blink-fast hidden" style="color: var(--neon-purple); font-size: 0.9rem; font-weight: bold; letter-spacing: 1px;"></p>
                         <div id="new-high-score-banner" class="hidden">
                             <span class="rainbow-text">NEW HIGH SCORE!</span>
                         </div>
@@ -136,6 +146,10 @@
                     <div class="legend-item">
                         <span class="dot neon-yellow blink-fast"></span>
                         <span>黃金超載晶體 (+30分 +加速)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="dot neon-purple blink-fast"></span>
+                        <span>幽靈鬼魂 (碰觸即死)</span>
                     </div>
                 </div>
             </div>

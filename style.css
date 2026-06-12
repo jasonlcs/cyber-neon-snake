@@ -530,6 +530,11 @@ input:checked + .slider:before {
     box-shadow: var(--glow-yellow);
 }
 
+.dot.neon-purple {
+    background-color: var(--neon-purple);
+    box-shadow: 0 0 10px rgba(157, 78, 221, 0.6), 0 0 20px rgba(157, 78, 221, 0.4);
+}
+
 .blink-fast {
     animation: blink-anim 0.5s infinite;
 }

@@ -165,6 +165,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const wrapStatusText = document.getElementById("wrap-status");
     const difficultyGroup = document.getElementById("difficulty-group");
     
+    const ghostToggleCheckbox = document.getElementById("ghost-toggle");
+    const ghostStatusText = document.getElementById("ghost-status");
+    const gameOverTitle = document.getElementById("game-over-title");
+    const gameOverReason = document.getElementById("game-over-reason");
+    
     // Virtual D-pad controls
     const ctrlUp = document.getElementById("ctrl-up");
     const ctrlDown = document.getElementById("ctrl-down");
@@ -200,6 +205,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let food = { x: 0, y: 0 };
     let goldFood = null; // { x: 0, y: 0, timer: 0, maxTimer: 5000 }
     
+    let ghostActive = true;
+    let ghost = { x: 2, y: 2, dx: 0, dy: 1, moveCounter: 0 };
+    
     let score = 0;
     let highScore = parseInt(localStorage.getItem("neon-snake-high-score")) || 0;
     highScoreEl.textContent = formatScore(highScore);
@@ -224,6 +232,11 @@ document.addEventListener("DOMContentLoaded", () => {
     wallWrapCheckbox.addEventListener("change", (e) => {
         wrapWalls = e.target.checked;
         wrapStatusText.textContent = wrapWalls ? "穿牆開啟 (無限)" : "穿牆關閉 (阻擋)";
+    });
+
+    ghostToggleCheckbox.addEventListener("change", (e) => {
+        ghostActive = e.target.checked;
+        ghostStatusText.textContent = ghostActive ? "鬼魂開啟 (危險)" : "鬼魂關閉 (安全)";
     });
 
     startBtn.addEventListener("click", () => {
@@ -296,6 +309,8 @@ document.addEventListener("DOMContentLoaded", () => {
         goldFood = null;
         rainbowMode = false;
         rainbowTimer = 0;
+        
+        ghost = { x: 2, y: 2, dx: 0, dy: 1, moveCounter: 0 };
 
         spawnFood();
 
@@ -359,6 +374,28 @@ document.addEventListener("DOMContentLoaded", () => {
         for (let i = 0; i < snake.length; i++) {
             if (snake[i].x === head.x && snake[i].y === head.y) {
                 endGame();
+                return;
+            }
+        }
+
+        // Move ghost and check collision
+        if (ghostActive) {
+            ghost.moveCounter++;
+            if (ghost.moveCounter >= 2) {
+                ghost.moveCounter = 0;
+                moveGhost();
+            }
+            
+            // Check collision with head
+            if (head.x === ghost.x && head.y === ghost.y) {
+                endGame("ghost");
+                return;
+            }
+            
+            // Check collision with body
+            const bodyCollision = snake.some(segment => segment.x === ghost.x && segment.y === ghost.y);
+            if (bodyCollision) {
+                endGame("ghost");
                 return;
             }
         }
@@ -544,12 +581,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Handles game over sequence
-    function endGame() {
+    function endGame(reason) {
         gameState = "GAMEOVER";
         audio.playDie();
         
         finalScoreEl.textContent = score;
         gameOverScreen.classList.add("active");
+        
+        if (reason === "ghost") {
+            gameOverTitle.textContent = "SYSTEM INFECTED";
+            gameOverReason.textContent = "ELIMINATED BY GHOST";
+            gameOverReason.classList.remove("hidden");
+        } else {
+            gameOverTitle.textContent = "MISSION FAILED";
+            gameOverReason.textContent = "";
+            gameOverReason.classList.add("hidden");
+        }
 
         // Save High Scores
         if (score > highScore) {
@@ -588,7 +635,10 @@ document.addEventListener("DOMContentLoaded", () => {
         // 5. Draw Gold Food (with circular countdown)
         drawGoldFood();
 
-        // 6. Draw Glowing Snake
+        // 6. Draw Ghost
+        drawGhost();
+
+        // 7. Draw Glowing Snake
         drawSnake();
     }
 
@@ -783,5 +833,147 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.lineTo(x, y + radius);
         ctx.quadraticCurveTo(x, y, x + radius, y);
         ctx.closePath();
+    }
+
+    // Ghost Movement & AI
+    function moveGhost() {
+        if (!ghostActive) return;
+        const head = snake[0];
+        const possibleDirs = [
+            {dx: 0, dy: -1},
+            {dx: 0, dy: 1},
+            {dx: -1, dy: 0},
+            {dx: 1, dy: 0}
+        ];
+        
+        // Filter out direct 180-degree reverse movements for natural flow
+        const oppositeDx = -ghost.dx;
+        const oppositeDy = -ghost.dy;
+        let dirs = possibleDirs.filter(d => !(d.dx === oppositeDx && d.dy === oppositeDy));
+        if (dirs.length === 0) dirs = possibleDirs;
+        
+        let chosenDir;
+        // 35% chance to target/chase snake
+        if (Math.random() < 0.35) {
+            let minDist = Infinity;
+            let bestDirs = [];
+            
+            dirs.forEach(d => {
+                let nextX = ghost.x + d.dx;
+                let nextY = ghost.y + d.dy;
+                
+                if (wrapWalls) {
+                    if (nextX >= COLS) nextX = 0;
+                    if (nextX < 0) nextX = COLS - 1;
+                    if (nextY >= ROWS) nextY = 0;
+                    if (nextY < 0) nextY = ROWS - 1;
+                }
+                
+                const dist = Math.abs(nextX - head.x) + Math.abs(nextY - head.y);
+                if (dist < minDist) {
+                    minDist = dist;
+                    bestDirs = [d];
+                } else if (dist === minDist) {
+                    bestDirs.push(d);
+                }
+            });
+            
+            chosenDir = bestDirs[Math.floor(Math.random() * bestDirs.length)];
+        } else {
+            // 65% chance to wander: bias towards continuing straight (50% of the time)
+            const continueDir = dirs.find(d => d.dx === ghost.dx && d.dy === ghost.dy);
+            if (continueDir && Math.random() < 0.5) {
+                chosenDir = continueDir;
+            } else {
+                chosenDir = dirs[Math.floor(Math.random() * dirs.length)];
+            }
+        }
+        
+        if (chosenDir) {
+            ghost.dx = chosenDir.dx;
+            ghost.dy = chosenDir.dy;
+            ghost.x += chosenDir.dx;
+            ghost.y += chosenDir.dy;
+            
+            // Grid boundary locks if wrap is disabled
+            if (wrapWalls) {
+                if (ghost.x >= COLS) ghost.x = 0;
+                if (ghost.x < 0) ghost.x = COLS - 1;
+                if (ghost.y >= ROWS) ghost.y = 0;
+                if (ghost.y < 0) ghost.y = ROWS - 1;
+            } else {
+                if (ghost.x < 0) ghost.x = 0;
+                if (ghost.x >= COLS) ghost.x = COLS - 1;
+                if (ghost.y < 0) ghost.y = 0;
+                if (ghost.y >= ROWS) ghost.y = ROWS - 1;
+            }
+        }
+    }
+
+    // Draw Pac-man style neon ghost
+    function drawGhost() {
+        if (!ghostActive) return;
+        ctx.save();
+        const px = ghost.x * GRID_SIZE;
+        const py = ghost.y * GRID_SIZE;
+        
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "#9d4edd";
+        ctx.fillStyle = "#9d4edd";
+        
+        const x = px + 1;
+        const y = py + 1;
+        const w = GRID_SIZE - 2;
+        const h = GRID_SIZE - 2;
+        const r = w / 2;
+        
+        ctx.beginPath();
+        ctx.arc(x + r, y + r, r, Math.PI, 0, false);
+        ctx.lineTo(x + w, y + h);
+        
+        // Wavy bottom skirts
+        const waveCount = 3;
+        const waveWidth = w / waveCount;
+        for (let i = 0; i < waveCount; i++) {
+            const startX = x + w - i * waveWidth;
+            ctx.quadraticCurveTo(
+                startX - waveWidth / 2, 
+                y + h - (i % 2 === 0 ? 3 : 0), 
+                startX - waveWidth, 
+                y + h
+            );
+        }
+        ctx.lineTo(x, y + r);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Ghost white eyes
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#ffffff";
+        const eyeRadius = 2.5;
+        const pupilRadius = 1;
+        
+        const leX = x + r - 3.5;
+        const leY = y + r - 1;
+        const reX = x + r + 3.5;
+        const reY = y + r - 1;
+        
+        ctx.beginPath();
+        ctx.arc(leX, leY, eyeRadius, 0, Math.PI * 2);
+        ctx.arc(reX, reY, eyeRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Blue pupils looking in direction of movement
+        ctx.fillStyle = "#00f0ff";
+        let pDx = ghost.dx;
+        let pDy = ghost.dy;
+        if (pDx === 0 && pDy === 0) pDy = 1;
+        
+        ctx.beginPath();
+        ctx.arc(leX + pDx, leY + pDy, pupilRadius, 0, Math.PI * 2);
+        ctx.arc(reX + pDx, reY + pDy, pupilRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
     }
 });
