@@ -677,6 +677,15 @@ input:checked + .slider:before {
     }
     
     .side-panel {
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        margin: auto 0;
+    }
+    
+    .side-panel .panel-section {
         display: none !important; /* Hide legend and keyboard instructions entirely to avoid excessive info */
     }
     

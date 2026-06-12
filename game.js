@@ -9,11 +9,16 @@ class AudioManager {
     }
 
     init() {
-        if (!this.ctx) {
-            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (this.ctx.state === 'suspended') {
-            this.ctx.resume();
+        try {
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
+        } catch (e) {
+            console.warn("Web Audio API is not supported or blocked by browser:", e);
+            this.ctx = null;
         }
     }
 
@@ -172,6 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const ctrlDown = document.getElementById("ctrl-down");
     const ctrlLeft = document.getElementById("ctrl-left");
     const ctrlRight = document.getElementById("ctrl-right");
+    const ctrlPause = document.getElementById("ctrl-pause");
 
     const audio = new AudioManager();
 
@@ -230,29 +236,47 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
+    // Start button handlers
     startBtn.addEventListener("click", () => {
         audio.init();
         startGame();
     });
+    startBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        audio.init();
+        startGame();
+    }, { passive: false });
 
+    // Resume button handlers
     resumeBtn.addEventListener("click", () => {
         togglePause();
     });
+    resumeBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        togglePause();
+    }, { passive: false });
 
+    // Restart button handlers
     restartBtn.addEventListener("click", () => {
         startGame();
     });
+    restartBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        startGame();
+    }, { passive: false });
 
-    // Touch D-Pad Events
-    ctrlUp.addEventListener("touchstart", (e) => { e.preventDefault(); changeDirection(0, -1); });
-    ctrlDown.addEventListener("touchstart", (e) => { e.preventDefault(); changeDirection(0, 1); });
-    ctrlLeft.addEventListener("touchstart", (e) => { e.preventDefault(); changeDirection(-1, 0); });
-    ctrlRight.addEventListener("touchstart", (e) => { e.preventDefault(); changeDirection(1, 0); });
+    // Touch D-Pad Events (using passive: false to allow e.preventDefault() on touch screens)
+    ctrlUp.addEventListener("touchstart", (e) => { e.preventDefault(); changeDirection(0, -1); }, { passive: false });
+    ctrlDown.addEventListener("touchstart", (e) => { e.preventDefault(); changeDirection(0, 1); }, { passive: false });
+    ctrlLeft.addEventListener("touchstart", (e) => { e.preventDefault(); changeDirection(-1, 0); }, { passive: false });
+    ctrlRight.addEventListener("touchstart", (e) => { e.preventDefault(); changeDirection(1, 0); }, { passive: false });
+    ctrlPause.addEventListener("touchstart", (e) => { e.preventDefault(); togglePause(); }, { passive: false });
 
     ctrlUp.addEventListener("mousedown", () => changeDirection(0, -1));
     ctrlDown.addEventListener("mousedown", () => changeDirection(0, 1));
     ctrlLeft.addEventListener("mousedown", () => changeDirection(-1, 0));
     ctrlRight.addEventListener("mousedown", () => changeDirection(1, 0));
+    ctrlPause.addEventListener("mousedown", () => togglePause());
 
     // Keyboard Events
     window.addEventListener("keydown", handleKeydown);
