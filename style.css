@@ -599,80 +599,103 @@ input:checked + .slider:before {
 
 /* --- Responsiveness & Adaptability --- */
 @media (max-width: 768px) {
+    html, body {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+    }
+
     body {
-        padding: 8px;
+        align-items: flex-start; /* Align game to the top of screen */
     }
     
     .game-container {
-        gap: 10px;
-        max-height: calc(100vh - 16px);
+        width: 100vw;
+        height: 100vh;
+        max-width: 100vw;
+        max-height: 100vh;
+        gap: 0;
+        border-radius: 0;
     }
     
     .game-header {
-        padding: 8px 16px;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        box-shadow: none;
+        background: rgba(7, 7, 20, 0.95);
+        border-bottom: 1px solid var(--border-glass);
     }
     
     .brand {
-        font-size: 1.2rem;
+        display: none !important; /* Hide brand title to avoid clutter */
     }
     
     .scoreboard {
-        gap: 8px;
+        width: 100%;
+        gap: 6px;
+        justify-content: space-between;
     }
     
     .score-card {
-        padding: 4px 10px;
-        min-width: 70px;
+        flex: 1;
+        min-width: 0;
+        padding: 4px 6px;
+        align-items: center;
+    }
+    
+    .card-label {
+        font-size: 0.55rem;
     }
     
     .card-value {
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
     
     .game-area {
         grid-template-columns: 1fr; /* Stack layout vertically */
-        gap: 10px;
-        height: calc(100% - 60px); /* Subtract header space */
+        grid-template-rows: 1fr auto; /* Canvas top, controls bottom */
+        gap: 0;
+        height: calc(100% - 45px); /* Remaining viewport minus header */
+        padding: 0;
     }
     
     .canvas-wrapper {
-        max-width: calc(100vh - 280px); /* Restrict canvas to fit D-Pad and Header */
-        max-height: calc(100vh - 280px);
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        box-shadow: none;
+        width: 100vw;
+        height: 100vw;
+        max-width: calc(100vh - 200px); /* Leave space for D-pad & header */
+        max-height: calc(100vh - 200px);
+        margin: auto;
     }
     
     .side-panel {
-        flex-direction: row;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .side-panel .panel-section:first-child {
-        display: none; /* Hide keyboard controls hint on mobile/tablet */
-    }
-    
-    .side-panel .panel-section.legend {
-        padding: 8px 16px;
-        border-radius: 10px;
+        display: none !important; /* Hide legend and keyboard instructions entirely to avoid excessive info */
     }
     
     .mobile-controls {
-        display: flex; /* Display D-Pad on tablet/mobile size */
-        margin: 5px 0;
+        display: flex; /* Display D-Pad */
+        margin: auto auto; /* Center in remaining bottom space */
+        padding: 12px 0;
+        z-index: 5;
     }
     
     .d-pad-btn {
-        width: 45px;
-        height: 45px;
-        border-radius: 8px;
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
     }
     
     .d-pad-center {
-        width: 45px;
-        height: 45px;
+        width: 50px;
+        height: 50px;
     }
     
     .logo-text {
@@ -682,5 +705,10 @@ input:checked + .slider:before {
     .overlay-content {
         padding: 15px;
         gap: 12px;
+        border-radius: 12px;
+    }
+    
+    .game-footer {
+        display: none !important; /* Hide footer to avoid clutter */
     }
 }
